@@ -3,8 +3,7 @@ using UnityEngine.InputSystem;
 
 public class Movement : MonoBehaviour
 {
-    [SerializeField] private float movementSpeed = 5f; // Скорость перемещения
-    [SerializeField] private float rotationSpeed = 100f;
+    [SerializeField] public float movementSpeed = 5f; 
     [SerializeField] private LayerMask _obstacleMask;
     [SerializeField] private float _step = 0.1f;
     
