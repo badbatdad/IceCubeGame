@@ -1,5 +1,7 @@
+using System.Threading;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Game : MonoBehaviour
 {
@@ -12,39 +14,51 @@ public class Game : MonoBehaviour
     [SerializeField] private int speedBoostPerWave = 1; 
     [SerializeField] private GameObject _healPrefab;
     [SerializeField] private GameObject _speedBoostPrefab;
-    [SerializeField] private int _numberOfEnemies = 1;
+    [SerializeField] private int _startnumberOfEnemies = 1;
     [SerializeField] private GameObject _pointPrefab;
     [SerializeField] private int _numberOfPointsToVictory = 5;
     [SerializeField] private TextMeshProUGUI _countHeartsText;
     [SerializeField] private int _startHearts = 3;
     [SerializeField] private TextMeshProUGUI _countPointsText;
-    [SerializeField]  private float speedBoostValue;
-    [SerializeField]  private float maxSpeed = 10;
-    [SerializeField]  private float chanceOfSpawnSpeedBoost = 0.5f;
+    [SerializeField] private float speedBoostValue;
+    [SerializeField] private float maxSpeed = 10;
+    [SerializeField] private float chanceOfSpawnSpeedBoost = 0.5f;
+    [SerializeField] private Button restartGameButton;
     
     private Movement _movement;
+    
     private int _countHearts;
     private int _countPoints = 0;
-    private bool _gameIsEnded;
-    private float _timer = 0;
-    private float _nextSpawnTime; 
+    private float _timer;
+    private float _nextSpawnTime;
+    private string[] tagsToDelete = { "Player", "Point", "Enemy", "SpeedBoost", "Heal" }; 
+    private int _numberOfEnemies;
+    private int enemiesPerWaves;
+    
+
+    
 
     private void Start()
-    {
+    {   
+        _numberOfEnemies = _startnumberOfEnemies;
         _movement = GetComponent<Movement>();
         _countHearts = _startHearts;
+        _timer = 0;
         _nextSpawnTime = _timer + secondsToSpawnWave;
+        enemiesPerWaves= enemiesPerWave;
         SpawnObjects();
         UpdateHeartsInfo();
         UpdatePointsInfo();
+
+        restartGameButton.gameObject.SetActive(false);
+        restartGameButton.interactable = false;
+        restartGameButton.onClick.AddListener(RestartGame);
+        
     }
 
     private void Update()
     {
-        if (!_gameIsEnded)
-        {
-            TimerTick();
-        }
+        TimerTick();
         if (_timer >= _nextSpawnTime)
         {
             SpawnWave();
@@ -60,28 +74,28 @@ public class Game : MonoBehaviour
 
     private void Lose()
     {
-        _gameIsEnded = true;
         _countPointsText.text = "ВЫ ПРОИГРАЛИ!";
-        return;
+        _nextSpawnTime = _timer + secondsToSpawnWave;
+        RestartGame();
+        
     }
 
     private void Victory()
     {
-        _gameIsEnded = true;
         _countPointsText.text = "Поздравляем вы собрали все монетки!";
+        Time.timeScale = 0;
+        restartGameButton.gameObject.SetActive(true);
+        restartGameButton.interactable = true;
     }
 
     private void SpawnObjects()
     {
-        SpawnObject(_playerPrefab, new Vector3(0, 0.2f, 0));
-
         for (int i = 0; i < _numberOfEnemies; i++)
         {
-            float posX = Random.Range(-4, 4);
-            float posZ = Random.Range(-4, 4);
-            SpawnObject(_enemyPrefab, new Vector3(posX, 0.16f, posZ));
+            SpawnObject(_enemyPrefab, new Vector3(Random.Range(-3, 3), 0.16f, Random.Range(-3, 3)));
         }
 
+        SpawnObject(_playerPrefab, new Vector3(0, 0.2f, 0));
     }
 
     private GameObject SpawnObject(GameObject prefab, Vector3 pos)
@@ -91,15 +105,12 @@ public class Game : MonoBehaviour
 
     public void PlayerCollectedPoint(GameObject point)
     {
-          if (!_gameIsEnded)
+        Destroy(point);
+        _countPoints++;
+        UpdatePointsInfo();
+        if (_countPoints >= _numberOfPointsToVictory) 
         {
-            Destroy(point);
-            _countPoints++;
-            UpdatePointsInfo();
-            if (_countPoints >= _numberOfPointsToVictory) 
-            {
-                 Victory();
-            }
+             Victory();
         }
     }
     public void PlayerHealPoint(GameObject point)
@@ -111,15 +122,13 @@ public class Game : MonoBehaviour
 
     public void PlayerHit()
     {
-       if (!_gameIsEnded)
+        _countHearts--;
+        UpdateHeartsInfo();
+        if (_countHearts <= 0)
         {
-            _countHearts--;
-            UpdateHeartsInfo();
-            if (_countHearts <= 0)
-            {
-                Lose();
-            }
+            Lose();
         }
+        
     }
 
     private void UpdatePointsInfo()
@@ -137,19 +146,19 @@ public class Game : MonoBehaviour
     {
         for (int i = 0; i < healsPerWave; i++)
         {
-            SpawnObject(_healPrefab, new Vector3(Random.Range(-4, 4), 0.16f, Random.Range(-4, 4)));
-            SpawnObject(_speedBoostPrefab, new Vector3(Random.Range(-4, 4), 0.16f, Random.Range(-4, 4)));
+            SpawnObject(_healPrefab, new Vector3(Random.Range(-3.2f, 3.2f), 0.16f, Random.Range(-3.2f, 3.2f)));
         }
-        enemiesPerWave--;
-        for (int i = 0; i < enemiesPerWave; i++)
+
+        enemiesPerWaves--;
+        for (int i = 0; i < enemiesPerWaves; i++)
         {
-            SpawnObject(_enemyPrefab, new Vector3(Random.Range(-4, 4), 0.16f, Random.Range(-4, 4)));
+            SpawnObject(_enemyPrefab, new Vector3(Random.Range(-3.2f, 3.2f), 0.16f, Random.Range(-3.2f, 3.2f)));
         }
         for (int i = 0; i < speedBoostPerWave; i++)
         {   
             if (RandomBool(chanceOfSpawnSpeedBoost))
             {
-            SpawnObject(_speedBoostPrefab, new Vector3(Random.Range(-4, 4), 0.16f, Random.Range(-4, 4)));
+            SpawnObject(_speedBoostPrefab, new Vector3(Random.Range(-3.2f, 3.2f), 0.16f, Random.Range(-3.2f, 3.2f)));
             }
         }
     }
@@ -173,6 +182,25 @@ public class Game : MonoBehaviour
                  Victory();
             }
         }
+    }
+    private void RestartGame()
+    {
+        _countPoints = 0;
+        Time.timeScale = 1;
+        ClearLevel();
+        Start();
+    }
+    private void ClearLevel()
+    {
+        foreach (string tag in tagsToDelete)
+        {
+            GameObject[] objectsToDelete = GameObject.FindGameObjectsWithTag(tag);
+            foreach (GameObject obj in objectsToDelete)
+                Destroy(obj);
+        }
+        
+               
+    
     }
     
 }
